@@ -1,0 +1,11 @@
+.pio
+.vscode/
+.cache/
+compile_commands.json
+*.bin
+*.zip
+.agents/
+
+# Local secrets (WiFi credentials)
+src/secrets.h
+
