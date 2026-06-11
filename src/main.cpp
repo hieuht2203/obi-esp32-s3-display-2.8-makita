@@ -145,6 +145,10 @@ void setup() {
     delay(10);
   }
 
+#ifdef ENABLE_DISPLAY
+  setupDisplay();
+#endif
+
   // Configure pins
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);
@@ -185,10 +189,6 @@ void setup() {
   }
 #else
   Serial.println("Mode: Serial Bridge Only");
-#endif
-
-#ifdef ENABLE_DISPLAY
-  setupDisplay();
 #endif
 
   Serial.println("Ready.");
@@ -1121,6 +1121,7 @@ void handleDisplay() {
     lastDisplayUpdate = millis();
     // Cập nhật lại màn hình nếu không có lỗi, để lấy trạng thái mới nhất
     if (batteryData.valid) {
+      readBatteryVoltages();
       updateDynamicUI();
     }
   }

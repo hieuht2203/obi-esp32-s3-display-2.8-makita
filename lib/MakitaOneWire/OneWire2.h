@@ -7,7 +7,7 @@
 
 #ifdef ARDUINO_ARCH_ESP32
 // due to the dual core esp32, a critical section works better than disabling interrupts
-#  define wire_noInterrupts() {portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;portENTER_CRITICAL(&mux);
+#  define wire_noInterrupts() {static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;portENTER_CRITICAL(&mux);
 #  define wire_interrupts() portEXIT_CRITICAL(&mux);}
 #else
 #  define wire_noInterrupts() noInterrupts();
@@ -54,7 +54,7 @@ uint8_t reset(void)
 {
 	uint8_t r;
 	uint8_t retries = 125;
-	//wire_noInterrupts();
+	wire_noInterrupts();
 	DIRECT_MODE_INPUT(baseReg, bitmask);
 	// wait until the wire is high... just in case
 	do {
@@ -69,7 +69,7 @@ uint8_t reset(void)
 	delayMicroseconds(70);
 	r = !DIRECT_READ(baseReg, bitmask);
 	delayMicroseconds(410);
-    	//wire_interrupts();
+    	wire_interrupts();
 	return r;
 }
 
@@ -79,7 +79,7 @@ uint8_t reset(void)
 //
 void  write_bit(uint8_t v)
 {
-	//wire_noInterrupts();
+	wire_noInterrupts();
 
 	DIRECT_WRITE_LOW(baseReg, bitmask);
 	DIRECT_MODE_OUTPUT(baseReg, bitmask);	// drive output low
@@ -93,7 +93,7 @@ void  write_bit(uint8_t v)
 		DIRECT_WRITE_HIGH(baseReg, bitmask);	// drive output high
 		delayMicroseconds(30);
 	}
-  	//wire_interrupts();
+  	wire_interrupts();
 }
 
 //
@@ -105,7 +105,7 @@ uint8_t read_bit(void)
 
 	uint8_t r;
 
-	//wire_noInterrupts();
+	wire_noInterrupts();
 	DIRECT_MODE_OUTPUT(baseReg, bitmask);
 	DIRECT_WRITE_LOW(baseReg, bitmask);
 	delayMicroseconds(10);
@@ -113,7 +113,7 @@ uint8_t read_bit(void)
 	delayMicroseconds(10);
 	r = DIRECT_READ(baseReg, bitmask);
 	delayMicroseconds(53);
-        //wire_interrupts();
+        wire_interrupts();
 	return r;
 }
 
