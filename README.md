@@ -1,95 +1,91 @@
-# OBI ESP32 - Open Battery Information
+# OBI ESP32 - Thông tin Pin Mở (Open Battery Information)
 
-An ESP32-C3 and ESP32-S3 port of the [Open Battery Information](https://github.com/mnh-jansson/open-battery-information) project by Martin Jansson.
+Phiên bản chuyển hệ (port) sang ESP32-C3 và ESP32-S3 của dự án gốc [Open Battery Information](https://github.com/mnh-jansson/open-battery-information) bởi Martin Jansson.
 
-This firmware provides a web-based interface or a standalone 2.8" TFT display interface for reading Makita LXT battery information, including cell voltages, temperatures, charge cycles, and error codes.
+Firmware này cung cấp một giao diện web hoặc giao diện màn hình TFT 2.8" độc lập để đọc thông tin pin Makita LXT (18V), bao gồm điện áp từng cell, nhiệt độ, số chu kỳ sạc và mã lỗi.
 
 ![OBI Web Interface](docs/screenshot.png)
 
-## Features
+## Tính năng
 
-- **Web Interface**: Responsive single-page application accessible from any browser (ESP32-C3 / ESP32-S3)
-- **Standalone 2.8" TFT Display**: Read battery info, cell voltages, temperatures, and errors directly on-screen with capacitive touch buttons (ESP32-S3 Display version)
-- **Real-time Battery Data**: Cell voltages, pack voltage, temperatures, charge count
-- **mDNS Discovery**: Access via `http://obi-esp32.local`
-- **OTA Updates**: Wireless firmware updates after initial flash
-- **REST API**: JSON endpoints for integration with other systems
-- **Dual Temperature Sensors**: Cell thermistor and MOSFET temperatures
+- **Giao diện Web**: Ứng dụng một trang (SPA) phản hồi nhanh, có thể truy cập từ bất kỳ trình duyệt nào (dành cho cả ESP32-C3 và ESP32-S3).
+- **Màn hình TFT 2.8" Độc lập**: Đọc trực tiếp thông tin pin, điện áp từng cell, nhiệt độ và lỗi ngay trên màn hình với các nút bấm cảm ứng dung kháng (dành riêng cho phiên bản ESP32-S3 Display).
+- **Dữ liệu Pin Thời gian thực**: Cập nhật điện áp pack pin, điện áp từng cell, nhiệt độ và số chu kỳ sạc theo thời gian thực (1 giây/lần).
+- **Khám phá mDNS**: Truy cập dễ dàng qua địa chỉ `http://obi-esp32.local`.
+- **Cập nhật OTA**: Nâng cấp firmware không dây (WiFi) sau lần nạp đầu tiên qua cổng USB.
+- **REST API**: Các endpoint dạng JSON tiện lợi để tích hợp với các hệ thống nhà thông minh khác.
+- **Cảm biến nhiệt độ kép**: Đọc cảm biến nhiệt độ Cell pin và nhiệt độ MOSFET.
 
+---
 
-## Hardware Requirements
+## Yêu cầu phần cứng
 
-### Bill of Materials
+### Danh sách linh kiện (BOM)
 
-| Component | Quantity | Notes |
-|-----------|----------|-------|
-| ESP32-C3 Super Mini **OR** ESP32-S3 Display 2.8" | 1 | ESP32-C3 for web-only mode; ESP32-S3 2.8" TFT Display (e.g., ESP32-2432S028R/C CYD board) for standalone touch UI |
-| 4.7kΩ Resistor | 2 | Pull-up resistors for data lines |
-| Makita LXT Battery | 1 | 18V batteries (BL18xx series) |
-| Connecting wires | 4 | For battery connections |
-| Makita charger connector | 1 | See below for links to a source on aliexpress |
- 
-### Enclosure
+| Linh kiện | Số lượng | Ghi chú |
+|-----------|----------|---------|
+| Mạch ESP32-C3 Super Mini **HOẶC** ESP32-S3 Display 2.8" | 1 | Dùng ESP32-C3 cho chế độ chỉ chạy giao diện Web; Dùng ESP32-S3 2.8" TFT Display (ví dụ board CYD ESP32-2432S028R/C) cho giao diện cảm ứng độc lập. |
+| Điện trở 4.7kΩ | 2 | Điện trở kéo lên (Pull-up) cho các đường truyền dữ liệu OneWire. |
+| Pin Makita LXT | 1 | Dòng pin 18V của Makita (BL18xx series). |
+| Dây nối | 4 | Để kết nối từ mạch điều khiển tới pin. |
+| Jack kết nối đế sạc Makita | 1 | Đầu cắm lấy tín hiệu từ pin (có thể mua trên AliExpress). |
 
-A 3D printed enclosure designed for the original Arduino-based OBI works well with this ESP32 version:
+### Vỏ hộp (Enclosure)
 
-- **Enclosure**: [Makita 18V Battery Unlock Device (OBI)](https://makerworld.com/en/models/2087559-makita-18v-battery-unlock-device-obi#profileId-2256293) on MakerWorld
-- **ESP32 Wedge**: [ESP32-C3 Super Mini holder](https://cad.onshape.com/documents/c5aa6404e5114fbe73d30d6f/w/0a86b12236fd063c60bf388b/e/192fc2f6005dd903a32d98f6) - small wedge to secure the ESP32 in place
+Bạn có thể in 3D vỏ hộp được thiết kế cho phiên bản OBI chạy Arduino gốc, nó hoàn toàn vừa vặn với phiên bản ESP32 này:
 
-The enclosure was designed for the Arduino Nano but accommodates the ESP32-C3 Super Mini with the addition of the wedge adapter.
+- **Vỏ hộp chính**: [Makita 18V Battery Unlock Device (OBI)](https://makerworld.com/en/models/2087559-makita-18v-battery-unlock-device-obi#profileId-2256293) trên MakerWorld.
+- **Khay giữ ESP32**: [ESP32-C3 Super Mini holder](https://cad.onshape.com/documents/c5aa6404e5114fbe73d30d6f/w/0a86b12236fd063c60bf388b/e/192fc2f6005dd903a32d98f6) - khay đệm nhỏ giúp cố định ESP32-C3 Super Mini vào đúng vị trí của Arduino Nano cũ.
 
-![OBI attached to battery](docs/photo1.jpg)
+![OBI gắn trên pin](docs/photo1.jpg)
 
-![Connector detail](docs/photo2.jpg)
+![Chi tiết cổng kết nối](docs/photo2.jpg)
 
-### Parts Sources
+---
 
-These parts were used in the [OBI build video](https://www.youtube.com/watch?v=kUg9jWvf5FM):
+## Sơ đồ đấu dây (Wiring Diagram)
 
-| Part | Link |
-|------|------|
-| Arduino Nano (or use ESP32-C3) | [AliExpress](https://shorturl.at/CDrs5) |
-| Makita charger connector | [AliExpress](https://shorturl.at/FXyoS) |
-| Spade terminals | [AliExpress](https://shorturl.at/iqGX7) |
-| 4.7kΩ 0.25W resistors | [AliExpress](https://shorturl.at/FKcI7) |
+### 1. Sơ đồ đấu dây cho ESP32-S3 Dev Board (Không có chip nạp CH340 / Kết nối USB trực tiếp)
 
-If the link to the Makita charger connector doesn't work, try searching for something like "BL1830 Charger Connector Terminal for Makita".
+Dưới đây là sơ đồ đấu nối chi tiết sử dụng mạch **ESP32-S3**:
 
-### Wiring Diagram
+![Sơ đồ đấu dây ESP32-S3](docs/wiring_diagram_esp32s3.jpg)
 
-![Wiring Diagram](docs/wiring-diagram.svg)
+### 2. Sơ đồ đấu dây cho ESP32-C3 / Sơ đồ nguyên lý chung
 
-#### Pin Connections
+![Sơ đồ đấu dây nguyên lý](docs/wiring-diagram.svg)
 
-Depending on your board type, connect the battery terminals to the corresponding pins.
+### Kết nối chân chi tiết (Pin Connections)
 
-##### ESP32-C3 Board
-| ESP32-C3 Pin | Makita Battery | Description |
+Tùy thuộc vào loại mạch bạn sử dụng, hãy kết nối các chân của pin Makita tới các chân GPIO tương ứng:
+
+#### Phiên bản mạch ESP32-C3 (Chỉ Web)
+| Chân ESP32-C3 | Chân Pin Makita | Mô tả |
 |--------------|----------------|-------------|
-| GPIO3 | Pin 2 (Data) | OneWire data line |
-| GPIO4 | Pin 6 (Enable) | Enable signal |
-| GND | Pin 5 (B-) | Ground reference |
-| 3.3V | — | Power for pull-up resistors only |
+| GPIO3 | Chân 2 (Data) | Đường truyền dữ liệu OneWire |
+| GPIO4 | Chân 6 (Enable) | Tín hiệu kích hoạt (Enable) |
+| GND | Chân 5 (B-) | Chân đất chung (GND) |
+| 3.3V | — | Cấp nguồn cho điện trở kéo lên |
 
-##### ESP32-S3 Display 2.8" Board
-| ESP32-S3 Pin | Makita Battery | Description |
+#### Phiên bản mạch ESP32-S3 Display 2.8"
+| Chân ESP32-S3 | Chân Pin Makita | Mô tả |
 |--------------|----------------|-------------|
-| GPIO2 | Pin 2 (Data) | OneWire data line |
-| GPIO3 | Pin 6 (Enable) | Enable signal |
-| GND | Pin 5 (B-) | Ground reference |
-| 3.3V | — | Power for pull-up resistors only |
+| GPIO2 | Chân 2 (Data) | Đường truyền dữ liệu OneWire |
+| GPIO3 | Chân 6 (Enable) | Tín hiệu kích hoạt (Enable) |
+| GND | Chân 5 (B-) | Chân đất chung (GND) |
+| 3.3V | — | Cấp nguồn cho điện trở kéo lên |
 
-*Note: For the ESP32-S3 Display board, the TFT display (ILI9341) and touch controller (FT6336) pins are pre-wired internally. You only need to wire the battery connection to the board's extension GPIO headers.*
+*Lưu ý: Đối với board ESP32-S3 Display, các chân điều khiển màn hình TFT (ILI9341) và cảm ứng (FT6336) đã được đấu dây sẵn bên trong mạch. Bạn chỉ cần hàn dây kết nối pin Makita vào các chân mở rộng bên ngoài của mạch.*
 
-#### Pull-up Resistors
+### Điện trở kéo lên (Pull-up Resistors)
 
-- **For ESP32-C3**: Both GPIO3 and GPIO4 require 4.7kΩ pull-up resistors to 3.3V.
-- **For ESP32-S3**: Both GPIO2 and GPIO3 require 4.7kΩ pull-up resistors to 3.3V.
-These pull-up resistors are essential for the modified OneWire protocol to function correctly.
+- **Với ESP32-C3**: Cả hai chân GPIO3 và GPIO4 đều yêu cầu điện trở kéo lên 4.7kΩ nối vào nguồn 3.3V.
+- **Với ESP32-S3**: Cả hai chân GPIO2 và GPIO3 đều yêu cầu điện trở kéo lên 4.7kΩ nối vào nguồn 3.3V.
+*Đây là yêu cầu bắt buộc để giao thức truyền nhận OneWire tùy biến hoạt động chính xác.*
 
-#### Makita Battery Terminal Layout
+### Sơ đồ chân cắm trên Pin Makita LXT
 
-Looking at the battery terminals from the front:
+Nhìn trực diện vào cụm giắc cắm trên pin Makita:
 
 ```
 ┌───────────────────────────────────────────┐
@@ -98,116 +94,109 @@ Looking at the battery terminals from the front:
 └───────────────────────────────────────────┘
 ```
 
-- **Outside pin (B+)**: Positive terminal (18V) - DO NOT CONNECT
-- **Pin 2 (Data)**: OneWire data communication
-- **Pin 6 (EN)**: Enable signal (side terminal)
-- **Outside pin (B-)**: Ground/negative terminal
+- **Chân ngoài cùng bên trái (B+)**: Điện áp dương của pack pin (18V) - **KHÔNG ĐƯỢC KẾT NỐI** vào ESP32.
+- **Chân số 2 (Data)**: Giao tiếp OneWire.
+- **Chân số 6 (EN)**: Tín hiệu kích hoạt (nằm ở cạnh bên).
+- **Chân ngoài cùng bên phải (B-)**: Chân âm chung (Ground).
 
-⚠️ **Warning**: Never connect the ESP32 directly to B+. The 18V will destroy the ESP32.
+⚠️ **Cảnh báo cực kỳ nguy hiểm**: Không bao giờ được kết nối chân B+ (18V) trực tiếp vào bất kỳ chân nào của ESP32. Điện áp 18V của pin sẽ phá hủy mạch điều khiển ngay lập tức.
 
-## Building and Flashing
+---
 
-### Prerequisites
+## Hướng dẫn Biên dịch và Nạp Firmware
 
-- [PlatformIO](https://platformio.org/) (VS Code extension or CLI)
-- USB-C cable
+### Yêu cầu trước khi cài đặt
 
-### Configuration
+- [PlatformIO](https://platformio.org/) (Cài đặt làm Extension trên VS Code hoặc dùng CLI).
+- Cáp kết nối USB-C.
 
-Copy the secrets template and add your WiFi credentials:
+### Cấu hình Wi-Fi
+
+Sao chép file cấu hình mẫu và điền thông tin mạng Wi-Fi của bạn:
 
 ```bash
 cp src/secrets.h.example src/secrets.h
 ```
 
-Then edit `src/secrets.h` with your WiFi credentials:
+Chỉnh sửa file `src/secrets.h` bằng thông tin mạng Wi-Fi nhà bạn:
 
 ```cpp
-#define WIFI_SSID "YourSSID"
-#define WIFI_PASS "YourPassword"
+#define WIFI_SSID "Tên_WiFi_Của_Bạn"
+#define WIFI_PASS "Mật_Khẩu_WiFi_Của_Bạn"
 ```
 
-The `secrets.h` file is gitignored, so your credentials won't be committed to version control.
+*File `secrets.h` đã được đưa vào danh sách `.gitignore` nên thông tin Wi-Fi của bạn sẽ không bị đẩy lên GitHub công khai.*
 
-### Initial Flash (USB)
+### Nạp lần đầu (Qua cổng USB)
 
-Choose the environment matching your hardware:
+Chọn môi trường build phù hợp với phần cứng bạn sử dụng:
 
-#### For ESP32-C3 (Web mode):
+#### 1. Cho ESP32-C3 (Chỉ chế độ Web):
 ```bash
-# Build and upload via USB
+# Build và upload firmware qua USB
 pio run -e esp32c3_web -t upload
 
-# Monitor serial output
+# Theo dõi cổng Serial Monitor
 pio device monitor
 ```
 
-#### For ESP32-S3 Display 2.8":
+#### 2. Cho ESP32-S3 Display 2.8":
 ```bash
-# Build and upload via USB
+# Build và upload firmware qua USB
 pio run -e esp32s3_display -t upload
 
-# Monitor serial output
+# Theo dõi cổng Serial Monitor
 pio device monitor
 ```
 
-### OTA Updates
+### Cập nhật không dây (OTA)
 
-After the initial flash, you can update wirelessly (update the IP address in `platformio.ini` to match your board's IP):
+Sau lần nạp đầu tiên qua USB, bạn có thể cập nhật firmware từ xa thông qua mạng Wi-Fi (cập nhật địa chỉ IP của ESP32 vào file `platformio.ini` tương ứng trước khi chạy):
 
 ```bash
-# For ESP32-C3
+# Cho ESP32-C3
 pio run -e esp32c3_ota -t upload
 
-# For ESP32-S3
+# Cho ESP32-S3
 pio run -e esp32s3_ota -t upload
 ```
 
-**Note**: If OTA fails with "Connect Failed", you may need to allow incoming connections from the ESP32's IP address in your firewall:
+---
 
-```bash
-# Linux with firewalld
-sudo firewall-cmd --add-rich-rule='rule family="ipv4" source address="192.168.x.x" accept'
-sudo firewall-cmd --runtime-to-permanent
-```
+## Cách sử dụng
 
-## Usage
+### 1. Truy cập thiết bị
 
-### Finding the Device
+ESP32 hỗ trợ quảng bá mDNS. Sau khi thiết bị kết nối thành công vào Wi-Fi nhà bạn, hãy truy cập qua trình duyệt:
 
-The ESP32 advertises itself via mDNS. After connecting to WiFi, access:
+- **Đường dẫn mDNS**: `http://obi-esp32.local`
+- **Địa chỉ IP trực tiếp**: Xem địa chỉ IP được in ra trên cổng Serial Monitor lúc khởi động.
 
-- **mDNS**: `http://obi-esp32.local`
-- **Direct IP**: Check serial output for assigned IP address
+### 2. Giao diện Web
 
-### Web Interface
+Giao diện Web cung cấp:
+- **Trạng thái kết nối**: Cho biết pin đang cắm hay đã rút.
+- **Thông tin Pin**: Hiển thị Model, Số chu kỳ sạc, Ngày sản xuất, Dung lượng thiết kế.
+- **Điện áp Cell**: Điện áp chi tiết của từng cell pin với mã màu cảnh báo sức khỏe cell:
+  - Xanh lá (≥3.5V): Tốt.
+  - Vàng (3.0V - 3.5V): Cảnh báo yếu.
+  - Đỏ (<3.0V): Nguy hiểm / Cần sạc lại ngay.
+- **Nhiệt độ**: Đọc nhiệt độ cảm biến Cell pin và cảm biến MOSFET.
+- **Mã lỗi (BMS)**: Trạng thái lỗi báo từ pin.
+- **Hành động nhanh**: Test nháy đèn LED báo pin và chức năng xóa lỗi pin (Reset Error).
+- **Log Debug**: Nhật ký hoạt động chi tiết thời gian thực.
 
-The web interface provides:
+### 3. Các API Endpoints tích hợp
 
-- **Connection Status**: Current battery connection state
-- **Battery Information**: Model, charge count, manufacturing date, capacity
-- **Cell Voltages**: Individual cell voltages with colour-coded health indicators
-  - Green (≥3.5V): Good
-  - Yellow (3.0-3.5V): Warning
-  - Red (<3.0V): Critical
-- **Temperatures**: Cell and MOSFET thermistor readings
-- **Error Code**: BMS error status
-- **Actions**: LED test and error reset functions
-- **Debug Log**: Real-time operation log
-
-### API Endpoints
-
-#### GET /api/read
-
-Returns complete battery information including voltages.
-
+#### `GET /api/read`
+Trả về toàn bộ thông tin pin chi tiết dưới dạng JSON:
 ```json
 {
   "success": true,
   "model": "BL1850B",
   "locked": false,
   "chargeCount": 42,
-  "mfgDate": "2021-06",
+  "mfgDate": "2021-06-15",
   "capacity": 5.0,
   "errorCode": 6,
   "packVoltage": 16.52,
@@ -222,10 +211,8 @@ Returns complete battery information including voltages.
 }
 ```
 
-#### GET /api/voltages
-
-Returns voltage and temperature data only.
-
+#### `GET /api/voltages`
+Chỉ trả về thông số điện áp và nhiệt độ để tối ưu hóa tốc độ đọc:
 ```json
 {
   "success": true,
@@ -241,46 +228,33 @@ Returns voltage and temperature data only.
 }
 ```
 
-#### GET /api/leds?state=1|0
+#### `GET /api/leds?state=1|0`
+Điều khiển bật/tắt các đèn LED chỉ thị trên pin (nếu pin hỗ trợ).
 
-Controls battery LED indicators (if supported).
+#### `GET /api/reset`
+Xóa các mã lỗi đã lưu trên chip BMS của pin. Hãy cẩn trọng khi dùng.
 
-#### GET /api/reset
+---
 
-Resets battery error codes. Use with caution.
+## Danh sách mã lỗi BMS thường gặp
 
-## Error Codes
+Dựa trên quá trình thử nghiệm thực tế, các mã lỗi sau đã được ghi nhận:
 
-Based on testing, these error codes have been observed:
-
-| Code | Meaning |
+| Mã lỗi | Ý nghĩa |
 |------|---------|
-| 4 | Battery fault/lockout (over-discharge protection) |
-| 6 | Normal operation |
+| 4 | Lỗi phần cứng/Khóa pin (Bảo vệ xả quá mức/Hỏng cell) |
+| 6 | Pin hoạt động bình thường |
 
-*Note: Official Makita error code documentation is not publicly available.*
+*Lưu ý: Tài liệu giải mã lỗi chính thức của Makita không được công bố công khai, các thông tin trên là do cộng đồng tự kiểm tra và rút ra.*
 
-## Temperature Readings
+---
 
-The firmware reads two temperature sensors:
+## Bản quyền và Lời cảm ơn
 
-- **Cell Temperature**: Thermistor near battery cells
-- **MOSFET Temperature**: Thermistor near power MOSFETs
+Dự án này là phiên bản port của mã nguồn [Open Battery Information](https://github.com/mnh-jansson/open-battery-information) gốc của Martin Jansson.
 
-Readings are typically 5-10°C above ambient due to:
-- Sensor location inside insulated battery enclosure
-- Quiescent current from BMS circuitry
+Tài liệu tham khảo thêm:
+- [Video hướng dẫn làm OBI](https://www.youtube.com/watch?v=kUg9jWvf5FM) - Hướng dẫn chi tiết cách build phiên bản Arduino Nano.
+- [Vỏ hộp in 3D](https://makerworld.com/en/models/2087559-makita-18v-battery-unlock-device-obi) - Thiết kế vỏ in 3D tiện lợi.
 
-## Acknowledgements
-
-This project is a port of the excellent [Open Battery Information](https://github.com/mnh-jansson/open-battery-information) by Martin Jansson. The original project provides a Python GUI application and documents the Makita battery communication protocol.
-
-Additional resources:
-- [OBI Build Video](https://www.youtube.com/watch?v=kUg9jWvf5FM) - Excellent tutorial showing the original Arduino build
-- [3D Printed Enclosure](https://makerworld.com/en/models/2087559-makita-18v-battery-unlock-device-obi) - Compact case design on MakerWorld
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file.
-
-Same license as the original Open Battery Information project.
+Dự án phát hành dưới giấy phép **MIT License** - xem chi tiết tại file [LICENSE](LICENSE).
