@@ -4,7 +4,8 @@ Phiên bản chuyển hệ (port) sang ESP32-C3 và ESP32-S3 của dự án gố
 
 Firmware này cung cấp một giao diện web hoặc giao diện màn hình TFT 2.8" độc lập để đọc thông tin pin Makita LXT (18V), bao gồm điện áp từng cell, nhiệt độ, số chu kỳ sạc và mã lỗi.
 
-![OBI Web Interface](docs/screenshot.png)
+![Giao diện Web - Quản lý Pin](docs/Screenshot%201.png)
+![Giao diện Web - Cấu hình Wi-Fi](docs/Screenshot%202.png)
 
 ## Tính năng
 
@@ -112,20 +113,13 @@ Nhìn trực diện vào cụm giắc cắm trên pin Makita:
 
 ### Cấu hình Wi-Fi
 
-Sao chép file cấu hình mẫu và điền thông tin mạng Wi-Fi của bạn:
+Mạch OBI ESP32 hỗ trợ **cấu hình Wi-Fi động thông qua trang cấu hình Portal**. Khi nạp chương trình lần đầu (hoặc khi không kết nối được Wi-Fi cũ):
 
-```bash
-cp src/secrets.h.example src/secrets.h
-```
+1. Mạch sẽ tự động phát Wi-Fi Access Point tên: `OBI-ESP32-Makita` (không mật khẩu).
+2. Dùng điện thoại/máy tính kết nối vào mạng Wi-Fi này và truy cập vào địa chỉ IP: `192.168.4.1` (hệ thống có hỗ trợ cơ chế Captive Portal tự động chuyển hướng đăng nhập).
+3. Chuyển sang tab **"Cấu hình Wi-Fi"**, nhấn quét mạng, chọn tên Wi-Fi nhà bạn, nhập mật khẩu và nhấn **"Lưu cấu hình & Kết nối"**. Mạch sẽ tự động lưu thông tin cấu hình vào bộ nhớ Flash (NVS) và tự khởi động lại để kết nối.
 
-Chỉnh sửa file `src/secrets.h` bằng thông tin mạng Wi-Fi nhà bạn:
-
-```cpp
-#define WIFI_SSID "Tên_WiFi_Của_Bạn"
-#define WIFI_PASS "Mật_Khẩu_WiFi_Của_Bạn"
-```
-
-*File `secrets.h` đã được đưa vào danh sách `.gitignore` nên thông tin Wi-Fi của bạn sẽ không bị đẩy lên GitHub công khai.*
+*Lưu ý (Tùy chọn dành cho Developer):* Bạn vẫn có thể bỏ qua bước cấu hình cổng Portal bằng cách tạo file `src/secrets.h` (sao chép từ `src/secrets.h.example`) và định nghĩa sẵn các hằng số `WIFI_SSID` và `WIFI_PASS` để mạch tự động kết nối ngay sau khi nạp.
 
 ### Nạp lần đầu (Qua cổng USB)
 

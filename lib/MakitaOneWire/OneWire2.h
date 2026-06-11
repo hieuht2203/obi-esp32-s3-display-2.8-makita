@@ -52,23 +52,30 @@ OneWire(){
 //
 uint8_t reset(void)
 {
-	uint8_t r;
+	uint8_t r = 0;
 	uint8_t retries = 125;
 	wire_noInterrupts();
 	DIRECT_MODE_INPUT(baseReg, bitmask);
+	
+	bool line_high = false;
 	// wait until the wire is high... just in case
 	do {
-		if (--retries == 0) return 0;
+		if (DIRECT_READ(baseReg, bitmask)) {
+			line_high = true;
+			break;
+		}
 		delayMicroseconds(2);
-	} while ( !DIRECT_READ(baseReg, bitmask));
+	} while (--retries > 0);
 
-	DIRECT_WRITE_LOW(baseReg, bitmask);
-	DIRECT_MODE_OUTPUT(baseReg, bitmask);	// drive output low
-	delayMicroseconds(750);
-	DIRECT_MODE_INPUT(baseReg, bitmask);	// allow it to float
-	delayMicroseconds(70);
-	r = !DIRECT_READ(baseReg, bitmask);
-	delayMicroseconds(410);
+	if (line_high) {
+		DIRECT_WRITE_LOW(baseReg, bitmask);
+		DIRECT_MODE_OUTPUT(baseReg, bitmask);	// drive output low
+		delayMicroseconds(750);
+		DIRECT_MODE_INPUT(baseReg, bitmask);	// allow it to float
+		delayMicroseconds(70);
+		r = !DIRECT_READ(baseReg, bitmask);
+		delayMicroseconds(410);
+	}
     	wire_interrupts();
 	return r;
 }

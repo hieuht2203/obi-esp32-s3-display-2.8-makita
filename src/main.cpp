@@ -52,6 +52,8 @@ bool uiDrawn = false;
 #include <ArduinoOTA.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <Preferences.h>
+#include <DNSServer.h>
 #if __has_include("secrets.h")
 #include "secrets.h"
 #endif
@@ -88,6 +90,9 @@ OneWire<ONEWIRE_PIN> makita;
 
 #ifdef ENABLE_WEB_SERVER
 WebServer server(80);
+DNSServer dnsServer;
+bool isAPMode = false;
+String apSSID = "OBI-ESP32-Makita";
 #endif
 
 // Battery data structure
@@ -166,26 +171,84 @@ void setup() {
 
 #ifdef ENABLE_WEB_SERVER
   Serial.println("Mode: Web Server + Serial Bridge");
-  Serial.println("Connecting to WiFi...");
+  
+  Preferences preferences;
+  preferences.begin("wifi", true); // Open in read-only
+  String savedSSID = preferences.getString("ssid", "");
+  String savedPASS = preferences.getString("pass", "");
+  preferences.end();
 
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf("Preferences loaded -> SSID: '%s', Password length: %d\n", savedSSID.c_str(), savedPASS.length());
 
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
+  bool connected = false;
+  
+  if (savedSSID.length() > 0) {
+    Serial.printf("Connecting to saved Wi-Fi: %s...\n", savedSSID.c_str());
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_STA);
+    if (savedPASS.length() > 0) {
+      WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
+    } else {
+      WiFi.begin(savedSSID.c_str());
+    }
+    
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) { // Wait up to 15 seconds
+      delay(500);
+      Serial.print(".");
+      attempts++;
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+      connected = true;
+      Serial.println();
+      Serial.print("Connected! IP: ");
+      Serial.println(WiFi.localIP());
+    } else {
+      Serial.printf("\nFailed to connect to saved Wi-Fi. Status: %d\n", WiFi.status());
+    }
+  } else {
+    // If no saved WiFi credentials, try secrets.h credentials as a fallback
+    #if defined(WIFI_SSID) && defined(WIFI_PASS)
+    if (String(WIFI_SSID) != "YourSSID" && String(WIFI_SSID).length() > 0) {
+      Serial.printf("Connecting to fallback secrets Wi-Fi: %s...\n", WIFI_SSID);
+      WiFi.disconnect(true);
+      WiFi.mode(WIFI_STA);
+      if (strlen(WIFI_PASS) > 0) {
+        WiFi.begin(WIFI_SSID, WIFI_PASS);
+      } else {
+        WiFi.begin(WIFI_SSID);
+      }
+      int attempts = 0;
+      while (WiFi.status() != WL_CONNECTED && attempts < 30) { // Wait up to 15 seconds
+        delay(500);
+        Serial.print(".");
+        attempts++;
+      }
+      if (WiFi.status() == WL_CONNECTED) {
+        connected = true;
+        Serial.println();
+        Serial.print("Connected to fallback! IP: ");
+        Serial.println(WiFi.localIP());
+      }
+    }
+    #endif
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println();
-    Serial.print("Connected! IP: ");
-    Serial.println(WiFi.localIP());
-    setupOTA();
+  if (!connected) {
+    Serial.println("Starting Access Point Mode...");
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(apSSID.c_str()); 
+    isAPMode = true;
+    
+    Serial.print("AP Started! IP Address: ");
+    Serial.println(WiFi.softAPIP());
+    
+    dnsServer.start(53, "*", WiFi.softAPIP());
     setupWebServer();
   } else {
-    Serial.println();
-    Serial.println("WiFi failed - Serial bridge only");
+    setupOTA();
+    setupWebServer();
   }
 #else
   Serial.println("Mode: Serial Bridge Only");
@@ -199,7 +262,11 @@ void setup() {
 // ------------------------------------------------------------------
 void loop() {
 #ifdef ENABLE_WEB_SERVER
-  ArduinoOTA.handle();
+  if (isAPMode) {
+    dnsServer.processNextRequest();
+  } else {
+    ArduinoOTA.handle();
+  }
   server.handleClient();
 #endif
 #ifdef ENABLE_DISPLAY
@@ -692,12 +759,122 @@ void handleApiReset() {
   server.send(200, "application/json", "{\"success\":true}");
 }
 
+void handleApiWifiScan() {
+  if (server.method() == HTTP_OPTIONS) {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    server.send(200, "text/plain", "");
+    return;
+  }
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  int n = WiFi.scanNetworks();
+  JsonDocument doc;
+  for (int i = 0; i < n; ++i) {
+    JsonObject net = doc.add<JsonObject>();
+    net["ssid"] = WiFi.SSID(i);
+    net["rssi"] = WiFi.RSSI(i);
+    net["encryption"] = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? "open" : "secured";
+  }
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+}
+
+void handleApiWifiSave() {
+  if (server.method() == HTTP_OPTIONS) {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    server.send(200, "text/plain", "");
+    return;
+  }
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  Serial.println("handleApiWifiSave called");
+  
+  // Debug log arguments
+  for (int i = 0; i < server.args(); i++) {
+    Serial.printf("Arg %d: %s = %s\n", i, server.argName(i).c_str(), server.arg(i).c_str());
+  }
+
+  String body = "";
+  if (server.hasArg("plain")) {
+    body = server.arg("plain");
+  } else if (server.args() > 0 && server.argName(0) == "plain") {
+    body = server.arg(0);
+  } else {
+    // If WebServer failed to parse raw body, read directly from the client TCP stream
+    Serial.println("WiFi Save: 'plain' arg missing, reading client TCP stream");
+    WiFiClient client = server.client();
+    while (client.available()) {
+      body += (char)client.read();
+    }
+  }
+  
+  Serial.printf("WiFi Save body length: %d, Content: '%s'\n", body.length(), body.c_str());
+
+  if (body.length() == 0) {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"Body missing\"}");
+    return;
+  }
+  
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, body);
+  if (error) {
+    Serial.printf("WiFi Save: JSON parse error: %s\n", error.c_str());
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"Invalid JSON\"}");
+    return;
+  }
+  
+  const char* ssid = doc["ssid"];
+  const char* pass = doc["pass"];
+  
+  if (!ssid || strlen(ssid) == 0) {
+    Serial.println("WiFi Save: SSID missing");
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"SSID missing\"}");
+    return;
+  }
+  
+  Serial.printf("Saving credentials to Preferences: SSID: '%s', Password length: %d\n", ssid, pass ? strlen(pass) : 0);
+  
+  Preferences preferences;
+  bool prefOK = preferences.begin("wifi", false);
+  if (prefOK) {
+    size_t ssidLen = preferences.putString("ssid", ssid);
+    size_t passLen = preferences.putString("pass", pass ? pass : "");
+    preferences.end();
+    Serial.printf("Preferences saved. SSID length: %d bytes, Password length: %d bytes\n", ssidLen, passLen);
+  } else {
+    Serial.println("WiFi Save: ERROR - Failed to open preferences namespace (wifi) in R/W mode!");
+  }
+  
+  server.send(200, "application/json", "{\"success\":true}");
+  delay(1000);
+  ESP.restart();
+}
+
 void setupWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/read", HTTP_GET, handleApiRead);
   server.on("/api/voltages", HTTP_GET, handleApiVoltages);
   server.on("/api/leds", HTTP_GET, handleApiLeds);
   server.on("/api/reset", HTTP_GET, handleApiReset);
+  server.on("/api/wifi/scan", HTTP_ANY, handleApiWifiScan);
+  server.on("/api/wifi/save", HTTP_ANY, handleApiWifiSave);
+
+  server.onNotFound([]() {
+    Serial.printf("onNotFound - URI: %s, Method: %d\n", server.uri().c_str(), server.method());
+    if (isAPMode) {
+      if (server.uri().startsWith("/api/") || server.uri() == "/") {
+        server.send(404, "text/plain", "Not Found");
+      } else {
+        server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString(), true);
+        server.send(302, "text/plain", "");
+      }
+    } else {
+      server.send(404, "text/plain", "Not Found");
+    }
+  });
 
   server.begin();
   Serial.println("Web server started on port 80");
